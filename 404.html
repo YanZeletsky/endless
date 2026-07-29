@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Бесконечный маг — читалка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Spectral:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#c8890f; --accent-soft:#e9b64a;
+  --sans:"Spectral",Georgia,"Iowan Old Style",serif;
+  --serif:"Spectral",Georgia,serif;
+  --display:"Fraunces","Iowan Old Style",Georgia,serif;
+  --sidebar-w:340px;
+  --measure:64ch;
+  --fs:1.16rem;
+}
+html[data-theme="light"]{
+  --bg:#f5f1e8; --bg2:#efe9dc; --panel:#fbf8f1; --ink:#2b2620; --ink-soft:#6a6155;
+  --line:#e0d7c6; --line-strong:#d0c4ac; --sel:#f3e6c6; --shadow:0 1px 3px rgba(60,45,20,.08),0 8px 30px rgba(60,45,20,.06);
+  --hair:rgba(120,95,45,.16);
+}
+html[data-theme="dark"]{
+  --bg:#12141c; --bg2:#0d0f16; --panel:#181b25; --ink:#e6e2d6; --ink-soft:#9a978c;
+  --line:#262a37; --line-strong:#333849; --sel:#3a2f14; --shadow:0 1px 3px rgba(0,0,0,.4),0 12px 40px rgba(0,0,0,.35);
+  --accent:#e0a11b; --accent-soft:#f2c55a; --hair:rgba(224,161,27,.18);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  transition:background .35s ease,color .35s ease;overflow:hidden}
+::selection{background:var(--sel)}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* progress line */
+#progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--accent),var(--accent-soft));box-shadow:0 0 12px var(--accent-soft);
+  transition:width .12s linear}
+
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;height:100vh;height:100dvh}
+
+/* ---------- sidebar ---------- */
+aside{background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;
+  transition:transform .32s cubic-bezier(.4,0,.2,1),background .35s ease}
+.brand{padding:22px 22px 14px}
+.brand .kicker{font:600 .68rem/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.brand h1{font:600 1.5rem/1.05 var(--display);margin:.35rem 0 .15rem;letter-spacing:.01em}
+.brand .meta{color:var(--ink-soft);font-size:.8rem}
+.searchwrap{padding:4px 18px 14px}
+.searchwrap input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line-strong);
+  background:var(--panel);color:var(--ink);font:500 .9rem var(--sans)}
+.searchwrap input::placeholder{color:var(--ink-soft)}
+.toc{overflow-y:auto;flex:1;padding:2px 10px 30px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.toc::-webkit-scrollbar{width:9px}.toc::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:20px;border:3px solid var(--bg2)}
+
+.vol{border-radius:10px;margin:1px 0}
+.vol>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  cursor:pointer;user-select:none;transition:background .15s}
+.vol>summary::-webkit-details-marker{display:none}
+.vol>summary:hover{background:var(--panel)}
+.vol .vnum{font:600 .7rem var(--sans);letter-spacing:.05em;color:var(--accent);min-width:2.4em}
+.vol .vname{font:500 .92rem var(--sans);color:var(--ink)}
+.vol .vcount{margin-left:auto;font-size:.72rem;color:var(--ink-soft)}
+.vol .chev{width:14px;height:14px;flex:none;color:var(--ink-soft);transition:transform .2s}
+.vol[open] .chev{transform:rotate(90deg)}
+.chaps{padding:2px 0 8px 14px;margin-left:8px;border-left:1px solid var(--hair)}
+.chap{display:flex;gap:9px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s}
+.chap:hover{background:var(--panel)}
+.chap .cn{font:600 .72rem var(--sans);color:var(--ink-soft);min-width:2.6em;text-align:right}
+.chap .ct{font-size:.85rem;line-height:1.3;color:var(--ink)}
+.chap.active{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.chap.active .cn,.chap.active .ct{color:var(--accent)}
+.chap.active .ct{font-weight:600}
+
+/* ---------- main ---------- */
+main{min-width:0;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--bg)}
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
+.iconbtn{width:38px;height:38px;display:grid;place-items:center;border-radius:9px;color:var(--ink-soft);transition:.15s}
+.iconbtn:hover{background:var(--bg2);color:var(--ink)}
+.iconbtn svg{width:19px;height:19px}
+#menuBtn{display:none}
+.crumb{min-width:0;flex:1}
+.crumb .c1{font:600 .68rem/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.crumb .c2{font:500 .95rem var(--sans);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.tools{display:flex;align-items:center;gap:4px}
+.tools .divider{width:1px;height:22px;background:var(--line);margin:0 4px}
+.fslabel{font:600 .7rem var(--sans);color:var(--ink-soft);padding:0 2px}
+
+.reader{overflow-y:auto;flex:1;scroll-behavior:smooth}
+.reader::-webkit-scrollbar{width:12px}.reader::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:20px;border:4px solid var(--bg)}
+.page{max-width:var(--measure);margin:0 auto;padding:56px 28px 40px}
+.page .vlabel{font:600 .7rem/1 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--accent);text-align:center}
+.page h2{font:600 2rem/1.15 var(--display);text-align:center;margin:14px 0 6px;letter-spacing:.01em}
+.page .cmeta{text-align:center;color:var(--ink-soft);font-size:.82rem;margin-bottom:8px}
+.ornament{width:60px;height:1px;margin:26px auto 34px;position:relative;background:var(--hair)}
+.ornament::after{content:"❖";position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  background:var(--bg);padding:0 10px;color:var(--accent);font-size:.8rem}
+.body p{font-family:var(--serif);font-size:var(--fs);line-height:1.85;margin:0 0 1.25em;
+  color:var(--ink);hanging-punctuation:first;text-wrap:pretty}
+.body p:first-of-type::first-letter{font-family:var(--display);font-weight:700;font-size:3.1em;line-height:.8;
+  float:left;margin:.02em .09em -.04em 0;color:var(--accent)}
+.scenejump{text-align:center;color:var(--ink-soft);letter-spacing:.5em;margin:1.6em 0}
+
+.pager{display:flex;gap:12px;max-width:var(--measure);margin:10px auto 90px;padding:0 28px}
+.pager button{flex:1;display:flex;flex-direction:column;gap:4px;padding:16px 18px;border:1px solid var(--line);
+  border-radius:14px;background:var(--panel);transition:.16s;text-align:left;box-shadow:var(--shadow)}
+.pager button:hover:not(:disabled){border-color:var(--accent);transform:translateY(-2px)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager .dir{font:600 .66rem var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.pager .nxt{text-align:right}
+.pager .ttl{font:500 .9rem var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* welcome */
+.welcome{max-width:var(--measure);margin:0 auto;padding:14vh 28px 40px;text-align:center}
+.welcome .glow{font:700 3.4rem/1 var(--display);letter-spacing:.01em;
+  background:linear-gradient(180deg,var(--ink),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+.welcome p{color:var(--ink-soft);font-size:1.05rem;margin:18px auto 30px;max-width:44ch;line-height:1.7}
+.welcome .start{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:12px;
+  background:var(--accent);color:#fff;font:600 .95rem var(--sans);box-shadow:var(--shadow)}
+html[data-theme="dark"] .welcome .start{color:#1a1206}
+.welcome .stats{margin-top:34px;display:flex;gap:34px;justify-content:center;color:var(--ink-soft);font-size:.85rem}
+.welcome .stats b{display:block;font:700 1.5rem var(--display);color:var(--ink)}
+
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.3s;z-index:40}
+.noresult{padding:24px 14px;color:var(--ink-soft);font-size:.85rem;text-align:center}
+
+@media(max-width:860px){
+  :root{--sidebar-w:82vw}
+  .app{grid-template-columns:1fr}
+  aside{position:fixed;inset:0 auto 0 0;width:var(--sidebar-w);max-width:360px;z-index:50;transform:translateX(-100%)}
+  html.nav-open aside{transform:none}
+  html.nav-open .scrim{opacity:1;pointer-events:auto}
+  #menuBtn{display:grid}
+  .page{padding:36px 20px 30px}
+  .page h2{font-size:1.6rem}
+  .welcome .glow{font-size:2.4rem}
+  .welcome .stats{gap:20px;flex-wrap:wrap}
+}
+.loading{max-width:var(--measure);margin:0 auto;padding:16vh 28px;text-align:center;color:var(--ink-soft);font:500 1rem var(--sans)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div class="scrim" id="scrim"></div>
+<div class="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="kicker">Веб-новелла</div>
+      <h1>Бесконечный маг</h1>
+      <div class="meta">Ким Чи У · 51 том · 1277 глав</div>
+    </div>
+    <div class="searchwrap">
+      <input id="search" type="search" placeholder="Поиск по номеру или названию…" autocomplete="off">
+    </div>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <button class="iconbtn" id="menuBtn" aria-label="Оглавление">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="crumb">
+        <div class="c1" id="crumbVol">Библиотека</div>
+        <div class="c2" id="crumbChap">Выберите главу</div>
+      </div>
+      <div class="tools">
+        <button class="iconbtn" id="fsDown" aria-label="Мельче" title="Мельче">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+        </button>
+        <span class="fslabel" id="fsLabel">100%</span>
+        <button class="iconbtn" id="fsUp" aria-label="Крупнее" title="Крупнее">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <span class="divider"></span>
+        <button class="iconbtn" id="themeBtn" aria-label="Сменить тему" title="Светлая / тёмная">
+          <svg id="icoSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+          <svg id="icoMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="reader" id="reader">
+      <div class="welcome" id="welcome">
+        <div class="glow">Бесконечный маг</div>
+        <p>История Широне — мальчика, которому открылся мир магии света. Весь роман в одном окне: 51 том, 1277 глав. Читайте, переключайте тему, регулируйте шрифт — прогресс сохраняется сам.</p>
+        <button class="start" id="startBtn">
+          Начать с 1-й главы
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <div class="stats"><div><b>51</b>том</div><div><b>1277</b>глав</div><div><b>∞</b>магии</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s), root=document.documentElement;
+  const reader=$('#reader'), toc=$('#toc'), progress=$('#progress');
+  const store={get:(k,d)=>{try{const v=localStorage.getItem('im_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+    set:(k,v)=>{try{localStorage.setItem('im_'+k,JSON.stringify(v))}catch(e){}}};
+  const esc=s=>s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  const volName=v=>'Том '+v;
+
+  let TOCDATA=[], flat=[], posOf={}, volOf={}, current=null;
+  const bodyCache={};           // vol number -> {chapNum: [paras]}
+
+  /* ---------- controls (available immediately) ---------- */
+  let fs=store.get('fs',100);
+  function applyFS(){root.style.setProperty('--fs',(fs/100*1.16).toFixed(3)+'rem');$('#fsLabel').textContent=fs+'%';store.set('fs',fs)}
+  $('#fsUp').onclick=()=>{fs=Math.min(160,fs+10);applyFS()};
+  $('#fsDown').onclick=()=>{fs=Math.max(80,fs-10);applyFS()};
+  let theme=store.get('theme', matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){root.dataset.theme=theme;$('#icoSun').style.display=theme==='light'?'block':'none';
+    $('#icoMoon').style.display=theme==='dark'?'block':'none';store.set('theme',theme)}
+  $('#themeBtn').onclick=()=>{theme=theme==='light'?'dark':'light';applyTheme()};
+  const openNav=()=>root.classList.add('nav-open'), closeNav=()=>root.classList.remove('nav-open');
+  $('#menuBtn').onclick=openNav; $('#scrim').onclick=closeNav;
+  applyTheme(); applyFS();
+
+  /* ---------- TOC ---------- */
+  function buildTOC(filter){
+    toc.innerHTML=''; const q=(filter||'').trim().toLowerCase(); let shown=0;
+    TOCDATA.forEach((v,vi)=>{
+      const matches=q? v.c.filter(c=>String(c.n)===q||c.t.toLowerCase().includes(q)||('глава '+c.n).includes(q)):v.c;
+      if(q&&!matches.length)return;
+      const d=document.createElement('details');d.className='vol';
+      if(q||(!q&&current&&current.vn===v.n))d.open=true;
+      const s=document.createElement('summary');
+      s.innerHTML=`<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        <span class="vnum">Т.${v.n}</span><span class="vname">${volName(v.n)}</span><span class="vcount">${v.c.length} гл.</span>`;
+      d.appendChild(s);
+      const wrap=document.createElement('div');wrap.className='chaps';
+      const render=()=>{if(wrap.dataset.done)return;wrap.dataset.done=1;
+        matches.forEach(c=>{const el=document.createElement('div');el.className='chap';el.dataset.n=c.n;
+          el.innerHTML=`<span class="cn">${c.n}</span><span class="ct">${esc(c.t)}</span>`;
+          el.onclick=()=>{open(c.n);closeNav()};
+          if(current&&current.n===c.n)el.classList.add('active');wrap.appendChild(el);});};
+      if(d.open)render(); d.addEventListener('toggle',()=>{if(d.open)render()});
+      d.appendChild(wrap);toc.appendChild(d);shown++;
+    });
+    if(q&&!shown)toc.innerHTML='<div class="noresult">Ничего не найдено</div>';
+  }
+  function highlightTOC(){document.querySelectorAll('.chap.active').forEach(e=>e.classList.remove('active'));
+    const el=toc.querySelector('.chap[data-n="'+(current?current.n:'')+'"]');if(el){el.classList.add('active');el.scrollIntoView({block:'nearest'})}}
+
+  /* ---------- fetch a volume's bodies ---------- */
+  async function loadVol(vn){
+    if(bodyCache[vn])return bodyCache[vn];
+    const res=await fetch(`data/v${String(vn).padStart(2,'0')}.json`);
+    if(!res.ok)throw new Error('fetch failed '+res.status);
+    const j=await res.json(); bodyCache[vn]=j; return j;
+  }
+
+  /* ---------- render chapter ---------- */
+  async function open(n, restoreScroll){
+    const meta=flat[posOf[n]]; if(!meta)return; current=meta;
+    $('#crumbVol').textContent=volName(meta.vn);
+    $('#crumbChap').textContent=`Глава ${n} · ${meta.t}`;
+    reader.innerHTML='<div class="loading">Загрузка главы…</div>';
+    let paras;
+    try{ const body=await loadVol(meta.vn); paras=body[String(n)]||['(текст недоступен)']; }
+    catch(e){ reader.innerHTML='<div class="loading">Не удалось загрузить главу. Проверьте соединение и обновите страницу.</div>'; return; }
+    if(current.n!==n)return; // user navigated away while loading
+    const prev=flat[posOf[n]-1], next=flat[posOf[n]+1];
+    const html=paras.map(p=>{const t=p.trim();
+      return /^[*\-—\s]+$/.test(t)?'<div class="scenejump">✦ ✦ ✦</div>':'<p>'+esc(t)+'</p>';}).join('');
+    reader.innerHTML=`
+      <article class="page">
+        <div class="vlabel">${volName(meta.vn)}</div>
+        <h2>${esc(meta.t)}</h2>
+        <div class="cmeta">Глава ${n} из 1277</div>
+        <div class="ornament"></div>
+        <div class="body">${html}</div>
+      </article>
+      <div class="pager">
+        <button ${prev?'':'disabled'} id="pPrev"><span class="dir">← Предыдущая</span><span class="ttl">${prev?('Гл. '+prev.n+' · '+esc(prev.t)):'Начало'}</span></button>
+        <button ${next?'':'disabled'} id="pNext" class="nxt"><span class="dir">Следующая →</span><span class="ttl">${next?('Гл. '+next.n+' · '+esc(next.t)):'Конец'}</span></button>
+      </div>`;
+    if(prev){$('#pPrev').onclick=()=>open(prev.n); loadVol(prev.vn).catch(()=>{});}
+    if(next){$('#pNext').onclick=()=>open(next.n); loadVol(next.vn).catch(()=>{});} // prefetch neighbours
+    reader.scrollTop=restoreScroll||0; updateProgress(); highlightTOC();
+    store.set('last',n); store.set('scroll',0);
+    document.title=`Гл. ${n} · ${meta.t} — Бесконечный маг`;
+  }
+
+  /* ---------- progress / scroll ---------- */
+  function updateProgress(){const max=reader.scrollHeight-reader.clientHeight;progress.style.width=((max>0?reader.scrollTop/max:0)*100).toFixed(1)+'%'}
+  let st;reader.addEventListener('scroll',()=>{updateProgress();clearTimeout(st);st=setTimeout(()=>store.set('scroll',reader.scrollTop),400)});
+
+  /* ---------- search / keys ---------- */
+  let sd;$('#search').addEventListener('input',e=>{clearTimeout(sd);sd=setTimeout(()=>buildTOC(e.target.value),120)});
+  addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
+    if(e.key==='ArrowRight'&&current){const nx=flat[posOf[current.n]+1];if(nx)open(nx.n)}
+    if(e.key==='ArrowLeft'&&current){const pv=flat[posOf[current.n]-1];if(pv)open(pv.n)}
+    if(e.key==='/'){e.preventDefault();$('#search').focus()}
+    if(e.key==='Escape')closeNav();});
+  $('#startBtn').onclick=()=>open(1);
+
+  /* ---------- boot: load TOC ---------- */
+  fetch('data/toc.json').then(r=>r.json()).then(data=>{
+    TOCDATA=data;
+    data.forEach(v=>v.c.forEach(c=>{posOf[c.n]=flat.length;volOf[c.n]=v.n;flat.push({vn:v.n,n:c.n,t:c.t})}));
+    buildTOC();
+    const last=store.get('last',null);
+    if(last!==null&&posOf[last]!==undefined)open(last,store.get('scroll',0));
+  }).catch(()=>{ toc.innerHTML='<div class="noresult">Не удалось загрузить оглавление.<br>Открывайте сайт по ссылке (http/https), а не файлом.</div>'; });
+})();
+</script>
+</body>
+</html>
